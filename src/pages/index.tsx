@@ -1,3 +1,4 @@
+import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import styles from '../styles/home.module.scss';
 
@@ -5,7 +6,31 @@ import Image from 'next/image';
 
 import techsImage from '../../public/images/techs.svg';
 
-export default function Home() {
+import Prismic from '@prismicio/client';
+import { getPrismicClient } from '../services/prismic';
+import { RichText } from 'prismic-dom';
+
+type Content = {
+  title: string;
+  titleContent: string;
+  linkAction: string;
+  mobileTitle: string;
+  mobileContent: string;
+  mobileBanner: string;
+  webTitle: string;
+  webContent: string;
+  webBanner: string;
+}
+
+interface ContentProps{
+  content: Content
+}
+
+export default function Home({ content }: ContentProps) {
+console.log("🚀 ~ file: index.tsx ~ line 30 ~ Home ~ content", content)
+
+  
+
   return (
    <>
     <Head>
@@ -14,9 +39,9 @@ export default function Home() {
     <main className={styles.container}>
       <div className={styles.containerHeader}>
         <section className={styles.ctaText}>
-          <h1>Levando você ao próximo nível!</h1>
-          <span>Uma plataforma com cursos que vão do zero até o profissional na pratica, direto ao ponto aplicando o que usamos no mercado de trabalho. 👊</span>
-          <a>
+          <h1>{content.title}</h1>
+          <span>{content.titleContent}</span>
+          <a href={content.linkAction}>
             <button>
               COMEÇAR AGORA!
             </button>
@@ -33,21 +58,21 @@ export default function Home() {
 
       <div className={styles.sectionContent}>
         <section>
-          <h2>Aprenda criar aplicativos para Android e iOS</h2>
-          <span>Você vai descobrir o jeito mais moderno de desenvolver apps nativos para iOS e Android, construindo aplicativos do zero até aplicativos.</span>
+          <h2>{content.mobileTitle}</h2>
+          <span>{content.mobileContent}</span>
         </section>
 
-        <img src="/images/financasApp.png" alt="Conteúdos desenvolvimento de apps" />
+        <img src={content.mobileBanner} alt={content.mobileTitle} />
       </div>
 
       <hr className={styles.divisor} />
 
       <div className={styles.sectionContent}>
-        <img src="/images/webDev.png" alt="Conteúdos desenvolvimento de aplicacoes web" />
+        <img src={content.webBanner} alt="Conteúdos desenvolvimento de aplicacoes web" />
 
         <section>
-          <h2>Aprenda criar sistemas web</h2>
-          <span>Criar sistemas web, sites usando as tecnologias mais modernas e requisitadas pelo mercado.</span>
+          <h2>{content.webTitle}</h2>
+          <span>{content.webContent}</span>
         </section>
       </div>
 
@@ -64,4 +89,46 @@ export default function Home() {
     </main>
    </>
   )
+}
+
+export const getStaticProps:GetStaticProps = async () => {
+
+  const priscmic = getPrismicClient();
+
+  const response = await priscmic.query([
+    Prismic.Predicates.at('document.type', 'home')
+  ]);
+
+  // console.log('response', response.results[0].data)
+
+  const { 
+    title, 
+    sub_title, 
+    link_action, 
+    mobile, 
+    mobile_content, 
+    mobile_banner, 
+    title_web, 
+    web_content, 
+    web_banner
+  } = response.results[0].data;
+
+  const content = {
+    title: RichText.asText(title),
+    titleContent: RichText.asText(sub_title),
+    linkAction: link_action.url,
+    mobileTitle: RichText.asText(mobile),
+    mobileContent: RichText.asText(mobile_content),
+    mobileBanner: mobile_banner.url,
+    webTitle: RichText.asText(title_web),
+    webContent: RichText.asText(web_content),
+    webBanner: web_banner.url,
+  };
+
+  return {
+    props: {
+      content
+    },
+    revalidate: 60 * 2
+  }
 }
